@@ -1,0 +1,73 @@
+#!/bin/bash
+WORKING=$PWD
+GITSOCK=$(realpath $HOME/.gitsock)
+mkdir -p $GITSOCK
+
+CMD=$1; shift
+
+missing() {
+  echo "ERROR: '$1' is required"
+  gitsock help
+}
+
+case $CMD in
+  mk)
+    SOCK=$1; shift
+    EMAIL=$1; shift
+    NAME=$1; shift
+    [ -z "$SOCK" ] && missing "sock" && exit 1
+    [ -z "$EMAIL" ] && missing "email" && exit 1
+    [ -z "$NAME" ] && missing "name" && exit 1
+    [ -d "$GITSOCK/$SOCK" ] && echo "'${SOCK}' is already a sock" && exit 1
+    mkdir -p "$GITSOCK/$SOCK"
+    echo $EMAIL > "$GITSOCK/$SOCK/email"
+    echo $NAME > "$GITSOCK/$SOCK/name"
+    ssh-keygen -t rsa -b 4096 -C "$EMAIL" -f "$GITSOCK/$SOCK/id_rsa" -N ""
+  ;;
+  rm)
+    SOCK=$1; shift
+    [ -z $SOCK ] && gitsock help && exit 1
+    [ ! -d "$GITSOCK/$SOCK" ] && echo "'${SOCK}' is not a sock" && exit 1
+    rm -rf "$GITSOCK/$SOCK"
+    echo "'${SOCK}' removed"
+  ;;
+  ls)
+    for SOCK in $(ls $GITSOCK); do
+      EMAIL=$(cat $GITSOCK/$SOCK/email)
+      NAME=$(cat $GITSOCK/$SOCK/name)
+      echo -e "$SOCK\t$EMAIL\t$NAME"
+    done
+  ;;
+  status)
+    [[ $(git rev-parse --is-inside-work-tree) != "true" ]] && exit 1
+    git config --local --get user.name
+    git config --local --get user.email
+    git config --local --get core.sshCommand
+  ;;
+  use)
+    SOCK=$1; shift
+    [ -z "$SOCK" ] && missing "sock" && exit 1
+    [[ $(git rev-parse --is-inside-work-tree) != "true" ]] && exit 1
+    [ ! -d "$GITSOCK/$SOCK" ] && echo "'${SOCK}' is not a sock" && exit 1
+    NAME=$(cat $GITSOCK/$SOCK/name)
+    EMAIL=$(cat $GITSOCK/$SOCK/email)
+    git config --local user.name "$NAME"
+    git config --local user.email "$EMAIL"
+    git config --local core.sshCommand "ssh -i ${GITSOCK}/${SOCK}/id_rsa"
+  ;;
+  key)
+    SOCK=$1; shift
+    [ -z "$SOCK" ] && missing "sock" && exit 1
+    [ ! -d "$GITSOCK/$SOCK" ] && echo "'${SOCK}' is not a sock" && exit 1
+    cat "$GITSOCK/$SOCK/id_rsa.pub"
+  ;;
+  *)
+    echo "Usage:"
+    echo "  gitsock ls                         List socks"
+    echo "  gitsock mk <sock> <email> <name>   Create a new sock"
+    echo "  gitsock rm <sock>                  Remove a sock"
+    echo "  gitsock status                     Show current repo's sock"
+    echo "  gitsock key <sock>                 Display a sock's public key"
+    echo "  gitsock use <sock>                 Use a sock for current repo"
+  ;;
+esac
