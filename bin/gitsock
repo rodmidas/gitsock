@@ -54,6 +54,7 @@ case $CMD in
     git config --local user.name "$NAME"
     git config --local user.email "$EMAIL"
     git config --local core.sshCommand "ssh -i ${GITSOCK}/${SOCK}/id_rsa"
+    echo "configured sock ${SOCK}"
   ;;
   key)
     SOCK=$1; shift
