@@ -28,4 +28,5 @@ Usage:
   gitsock status                     Show current repo's sock
   gitsock key <sock>                 Display a sock's public key
   gitsock use <sock>                 Use a sock for current repo
+  gitsock clone <sock> <url> <dir>   Clone using a sock
 ```
